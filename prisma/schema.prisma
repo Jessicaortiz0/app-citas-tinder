@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Estado {
+  PENDIENTE
+  CONFIRMADA
+  CANCELADA
+}
+
+model Paciente {
+  id       Int     @id @default(autoincrement())
+  cedula   String  @unique
+  nombre   String
+  email    String  @unique
+  telefono String?
+  citas    Cita[]
+  creadoEn DateTime @default(now())
+}
+
+model Doctor {
+  id       Int     @id @default(autoincrement())
+  nombre   String  @unique
+  email    String  @unique
+  citas    Cita[]
+  creadoEn DateTime @default(now())
+}
+
+model Cita {
+  id         Int      @id @default(autoincrement())
+  fecha      DateTime
+  motivo     String
+  estado     Estado   @default(PENDIENTE)
+  pacienteId Int
+  paciente   Paciente @relation(fields: [pacienteId], references: [id])
+  doctorId   Int?
+  doctor     Doctor?  @relation(fields: [doctorId], references: [id])
+  creadaEn   DateTime @default(now())
+}
