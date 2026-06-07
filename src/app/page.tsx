@@ -8,7 +8,6 @@ import MatchList from "@/components/MatchList";
 import ProfileView from "@/components/ProfileView";
 import ChatBox from "@/components/ChatBox";
 import { Usuario, Matchs } from "@/lib/types";
-import { createClient } from "@/utils/supabase/client";
 
 export default function Home() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
@@ -20,42 +19,20 @@ export default function Home() {
   const [potentialMatches, setPotentialMatches] = useState<Usuario[]>([]);
   const [matches, setMatches] = useState<Matchs[]>([]);
 
-  const supabase = createClient();
-
   useEffect(() => {
     setMounted(true);
-    checkUser();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        fetchUsuarioFromDB(session.user.email!);
-      } else {
-        setUsuario(null);
+    // Load logged-in user from localStorage
+    const storedUser = localStorage.getItem("usuario");
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        setUsuario(parsed);
+      } catch (e) {
+        console.error("Failed to parse stored user", e);
+        localStorage.removeItem("usuario");
       }
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
-
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user?.email) {
-      fetchUsuarioFromDB(session.user.email);
-    }
-  };
-
-  const fetchUsuarioFromDB = async (email: string) => {
-    try {
-      const res = await fetch(`/api/usuarios/me?email=${encodeURIComponent(email)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setUsuario(data);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   useEffect(() => {
     if (usuario) {
@@ -88,8 +65,13 @@ export default function Home() {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLoginSuccess = (user: Usuario) => {
+    localStorage.setItem("usuario", JSON.stringify(user));
+    setUsuario(user);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("usuario");
     setUsuario(null);
   };
 
@@ -123,7 +105,7 @@ export default function Home() {
   if (!mounted) return <div className="min-h-screen bg-zinc-950" />;
 
   if (!usuario) {
-    return <Login onLogin={() => checkUser()} />;
+    return <Login onLogin={handleLoginSuccess} />;
   }
 
   if (activeChat) {

@@ -29,7 +29,7 @@ export default function SwipeCard({ usuario, onSwipe, isActive }: SwipeCardProps
 
   const getProfileImage = () => {
     if (usuario.fotografias && usuario.fotografias.length > 0) {
-      return usuario.fotografias[0].url;
+      return usuario.fotografias[0].url_imagen;
     }
     // Placeholder if no photo
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(usuario.nombre)}&size=400&background=random`;

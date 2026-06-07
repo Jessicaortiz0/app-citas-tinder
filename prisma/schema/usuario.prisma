@@ -45,6 +45,7 @@ model Contacto {
   id_usuario      Int     @unique
   correo          String  @unique
   numero_telefono String?
+  password        String?
 
   usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 }

@@ -5,38 +5,30 @@ const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
-    const { nombre } = await request.json();
+    const { email, password } = await request.json();
 
-    if (!nombre) {
-      return NextResponse.json({ error: "Nombre es requerido" }, { status: 400 });
+    if (!email || !password) {
+      return NextResponse.json({ error: "Email y contraseña son requeridos" }, { status: 400 });
     }
 
-    // Buscar o crear usuario (Mock login)
-    let usuario = await prisma.usuario.findFirst({
-      where: { nombre },
+    // Find the contacto record and include the usuario relations
+    const contacto = await prisma.contacto.findUnique({
+      where: { correo: email },
       include: {
-        perfil: true,
-        fotografias: true,
-      }
+        usuario: {
+          include: {
+            perfil: true,
+            fotografias: true,
+          },
+        },
+      },
     });
 
-    if (!usuario) {
-      usuario = await prisma.usuario.create({
-        data: {
-          nombre,
-          edad: 25,
-          genero: "No especificado",
-          nacionalidad: "Local",
-          ciudad_pais: "Ciudad",
-        },
-        include: {
-          perfil: true,
-          fotografias: true,
-        }
-      });
+    if (!contacto || contacto.password !== password) {
+      return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
     }
 
-    return NextResponse.json({ usuario }, { status: 200 });
+    return NextResponse.json({ success: true, usuario: contacto.usuario }, { status: 200 });
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json({ error: "Error en el servidor" }, { status: 500 });

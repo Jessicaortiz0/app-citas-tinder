@@ -33,7 +33,7 @@ export default function ChatBox({ match, onBack }: ChatBoxProps) {
     // In a real app, send to API here
   };
 
-  const imageUrl = otherUser.fotografias?.[0]?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser.nombre)}&background=random`;
+  const imageUrl = otherUser.fotografias?.[0]?.url_imagen || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser.nombre)}&background=random`;
 
   return (
     <div className="flex flex-col h-[100dvh] bg-zinc-950">

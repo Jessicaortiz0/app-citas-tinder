@@ -16,7 +16,7 @@ export interface Usuario {
   ciudad_pais: string;
   verificado: boolean;
   perfil?: Perfil | null;
-  fotografias?: { id_fotografia: number; url: string }[];
+  fotografias?: { id_foto: number; url_imagen: string; es_principal?: boolean }[];
 }
 
 export interface Matchs {

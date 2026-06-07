@@ -27,7 +27,7 @@ export default function MatchList({ matches, onOpenChat }: MatchListProps) {
           const otherUser = match.usuario2;
           if (!otherUser) return null;
 
-          const imageUrl = otherUser.fotografias?.[0]?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser.nombre)}&background=random`;
+          const imageUrl = otherUser.fotografias?.[0]?.url_imagen || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser.nombre)}&background=random`;
 
           return (
             <button

@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Flame } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
+import { Usuario } from "@/lib/types";
 
 interface LoginProps {
-  onLogin: () => void;
+  onLogin: (usuario: Usuario) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
@@ -15,8 +15,6 @@ export default function Login({ onLogin }: LoginProps) {
   const [nombre, setNombre] = useState(""); // Only for signup
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  
-  const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,49 +26,43 @@ export default function Login({ onLogin }: LoginProps) {
 
     try {
       if (isSignUp) {
-        // Sign up with Supabase
-        const { data, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
+        // Local Registration in Prisma Database
+        const res = await fetch("/api/usuarios/registro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, nombre }),
         });
 
-        if (authError) throw authError;
+        const data = await res.json();
 
-        if (data.user) {
-          // Sync with Prisma via our custom API route
-          const res = await fetch("/api/usuarios/sync", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              email, 
-              nombre, 
-              authId: data.user.id 
-            }),
-          });
+        if (!res.ok) {
+          throw new Error(data.error || "Error al registrar la cuenta");
+        }
 
-          if (!res.ok) {
-            console.error("Error syncing with Prisma");
-            // Still log them in for MVP, but display a warning
-          }
-
-          onLogin();
+        if (data.usuario) {
+          onLogin(data.usuario);
         }
       } else {
-        // Log in with Supabase
-        const { data, error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+        // Local Login in Prisma Database
+        const res = await fetch("/api/usuarios/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
         });
 
-        if (authError) throw authError;
-        
-        if (data.user) {
-          onLogin(); // Tell page.tsx to fetch the user
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Credenciales incorrectas");
+        }
+
+        if (data.usuario) {
+          onLogin(data.usuario);
         }
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Authentication failed");
+      setError(err.message || "Error de autenticación");
     } finally {
       setIsLoading(false);
     }

@@ -9,7 +9,7 @@ interface ProfileViewProps {
 }
 
 export default function ProfileView({ usuario, onLogout }: ProfileViewProps) {
-  const imageUrl = usuario.fotografias?.[0]?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(usuario.nombre)}&background=random`;
+  const imageUrl = usuario.fotografias?.[0]?.url_imagen || `https://ui-avatars.com/api/?name=${encodeURIComponent(usuario.nombre)}&background=random`;
 
   return (
     <div className="p-6 h-full overflow-y-auto pb-24">
