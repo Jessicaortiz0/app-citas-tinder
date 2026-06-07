@@ -1,433 +1,147 @@
+"use client";
+
 import { useState } from "react";
+import { Flame } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
 interface LoginProps {
-  onLogin: (nombre: string, rol: "paciente" | "doctor", id?: number) => void;
+  onLogin: () => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  const [cedula, setCedula] = useState("");
-  const [nombre, setNombre] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
-  const [rol, setRol] = useState<"paciente" | "doctor">("paciente");
-  const [error, setError] = useState("");
+  const [password, setPassword] = useState("");
+  const [nombre, setNombre] = useState(""); // Only for signup
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  
+  const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password.trim()) return;
+    if (isSignUp && !nombre.trim()) return;
+
     setIsLoading(true);
     setError("");
 
-    if (!nombre.trim()) {
-      setError("Por favor ingresa tu nombre");
-      setIsLoading(false);
-      return;
-    }
-
-    if (rol === "paciente" && !cedula.trim()) {
-      setError("Por favor ingresa tu cédula");
-      setIsLoading(false);
-      return;
-    }
-
-    if (rol === "doctor" && !email.trim()) {
-      setError("Por favor ingresa tu email");
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      if (rol === "paciente") {
-        // Guardar paciente en BD
-        const res = await fetch("/api/pacientes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cedula,
-            nombre,
-          }),
+      if (isSignUp) {
+        // Sign up with Supabase
+        const { data, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
         });
 
-        if (res.ok) {
-          const { paciente } = await res.json();
-          onLogin(nombre, rol, paciente.id);
-        } else {
-          setError("Error al guardar paciente");
+        if (authError) throw authError;
+
+        if (data.user) {
+          // Sync with Prisma via our custom API route
+          const res = await fetch("/api/usuarios/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              email, 
+              nombre, 
+              authId: data.user.id 
+            }),
+          });
+
+          if (!res.ok) {
+            console.error("Error syncing with Prisma");
+            // Still log them in for MVP, but display a warning
+          }
+
+          onLogin();
         }
       } else {
-        // Guardar doctor en BD
-        const res = await fetch("/api/doctores", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            nombre,
-            email,
-          }),
+        // Log in with Supabase
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
 
-        if (res.ok) {
-          const { doctor } = await res.json();
-          onLogin(nombre, rol, doctor.id);
-        } else {
-          setError("Error al guardar doctor");
+        if (authError) throw authError;
+        
+        if (data.user) {
+          onLogin(); // Tell page.tsx to fetch the user
         }
       }
-    } catch (err) {
-      setError("Error en la conexión");
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Authentication failed");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        padding: "1rem",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "400px",
-          backgroundColor: "white",
-          borderRadius: "16px",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-          padding: "2rem",
-        }}
-      >
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <div
-            style={{
-              fontSize: "3rem",
-              marginBottom: "0.5rem",
-            }}
-          >
-            🏥
-          </div>
-          <h1
-            style={{
-              fontSize: "1.75rem",
-              fontWeight: 700,
-              color: "#1e293b",
-              margin: 0,
-            }}
-          >
-            MediCitas
-          </h1>
-          <p
-            style={{
-              color: "#64748b",
-              fontSize: "0.95rem",
-              marginTop: "0.5rem",
-              margin: 0,
-            }}
-          >
-            Sistema de gestión de citas médicas
-          </p>
+    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-white">
+      <div className="w-full max-w-sm flex flex-col items-center text-center">
+        <div className="bg-gradient-to-tr from-rose-600 to-orange-500 w-24 h-24 rounded-3xl flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(225,29,72,0.4)]">
+          <Flame size={48} className="text-white" strokeWidth={2.5} />
         </div>
+        
+        <h1 className="text-4xl font-black mb-2 tracking-tight">Ignite</h1>
+        <p className="text-zinc-400 mb-8">{isSignUp ? "Create an account to start matching" : "Match. Chat. Date."}</p>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit}>
-          {/* Rol primero */}
-          <div style={{ marginBottom: "2rem" }}>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "0.75rem",
-                fontWeight: 600,
-                color: "#1e293b",
-                fontSize: "0.95rem",
-              }}
-            >
-              Ingreso como:
-            </label>
-            <div style={{ display: "flex", gap: "1rem" }}>
-              <label
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.75rem",
-                  border:
-                    rol === "paciente"
-                      ? "2px solid #3b82f6"
-                      : "2px solid #e2e8f0",
-                  borderRadius: "8px",
-                  cursor: isLoading ? "not-allowed" : "pointer",
-                  transition: "all 0.2s ease",
-                  backgroundColor: rol === "paciente" ? "#eff6ff" : "white",
-                  opacity: isLoading ? 0.6 : 1,
-                }}
-              >
-                <input
-                  type="radio"
-                  name="rol"
-                  value="paciente"
-                  checked={rol === "paciente"}
-                  onChange={(e) => {
-                    setRol(e.target.value as "paciente");
-                    setEmail("");
-                  }}
-                  disabled={isLoading}
-                  style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
-                />
-                <span style={{ fontWeight: 500, color: "#1e293b" }}>
-                  👤 Paciente
-                </span>
-              </label>
-
-              <label
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.75rem",
-                  border:
-                    rol === "doctor"
-                      ? "2px solid #3b82f6"
-                      : "2px solid #e2e8f0",
-                  borderRadius: "8px",
-                  cursor: isLoading ? "not-allowed" : "pointer",
-                  transition: "all 0.2s ease",
-                  backgroundColor: rol === "doctor" ? "#eff6ff" : "white",
-                  opacity: isLoading ? 0.6 : 1,
-                }}
-              >
-                <input
-                  type="radio"
-                  name="rol"
-                  value="doctor"
-                  checked={rol === "doctor"}
-                  onChange={(e) => setRol(e.target.value as "doctor")}
-                  disabled={isLoading}
-                  style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
-                />
-                <span style={{ fontWeight: 500, color: "#1e293b" }}>
-                  👨‍⚕️ Doctor
-                </span>
-              </label>
-            </div>
-          </div>
-
-          {/* Cédula (solo para pacientes) */}
-          {rol === "paciente" && (
-            <div style={{ marginBottom: "1.5rem" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "0.5rem",
-                  fontWeight: 600,
-                  color: "#1e293b",
-                  fontSize: "0.95rem",
-                }}
-              >
-                Tu cédula
-              </label>
+        <form onSubmit={handleSubmit} className="w-full space-y-4">
+          {isSignUp && (
+            <div>
               <input
                 type="text"
-                value={cedula}
-                onChange={(e) => {
-                  setCedula(e.target.value);
-                  setError("");
-                }}
-                placeholder="Ej: 1234567890"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Your Name"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-6 py-4 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all"
                 disabled={isLoading}
-                style={{
-                  width: "100%",
-                  padding: "0.75rem",
-                  border: error ? "2px solid #ef4444" : "2px solid #e2e8f0",
-                  borderRadius: "8px",
-                  fontSize: "0.95rem",
-                  fontFamily: "inherit",
-                  boxSizing: "border-box",
-                  transition: "all 0.2s ease",
-                  opacity: isLoading ? 0.6 : 1,
-                }}
-                onFocus={(e) => {
-                  (e.target as HTMLInputElement).style.borderColor = "#3b82f6";
-                }}
-                onBlur={(e) => {
-                  (e.target as HTMLInputElement).style.borderColor = error
-                    ? "#ef4444"
-                    : "#e2e8f0";
-                }}
               />
             </div>
           )}
-
-          {/* Nombre */}
-          <div style={{ marginBottom: "1.5rem" }}>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "0.5rem",
-                fontWeight: 600,
-                color: "#1e293b",
-                fontSize: "0.95rem",
-              }}
-            >
-              Tu nombre
-            </label>
+          
+          <div>
             <input
-              type="text"
-              value={nombre}
-              onChange={(e) => {
-                setNombre(e.target.value);
-                setError("");
-              }}
-              placeholder="Ej: Juan Pérez"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-6 py-4 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all"
               disabled={isLoading}
-              style={{
-                width: "100%",
-                padding: "0.75rem",
-                border: error ? "2px solid #ef4444" : "2px solid #e2e8f0",
-                borderRadius: "8px",
-                fontSize: "0.95rem",
-                fontFamily: "inherit",
-                boxSizing: "border-box",
-                transition: "all 0.2s ease",
-                opacity: isLoading ? 0.6 : 1,
-              }}
-              onFocus={(e) => {
-                (e.target as HTMLInputElement).style.borderColor = "#3b82f6";
-              }}
-              onBlur={(e) => {
-                (e.target as HTMLInputElement).style.borderColor = error
-                  ? "#ef4444"
-                  : "#e2e8f0";
-              }}
             />
           </div>
 
-          {/* Email (solo para doctors) */}
-          {rol === "doctor" && (
-            <div style={{ marginBottom: "1.5rem" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "0.5rem",
-                  fontWeight: 600,
-                  color: "#1e293b",
-                  fontSize: "0.95rem",
-                }}
-              >
-                Tu email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setError("");
-                }}
-                placeholder="Ej: doctor@hospital.com"
-                disabled={isLoading}
-                style={{
-                  width: "100%",
-                  padding: "0.75rem",
-                  border: error ? "2px solid #ef4444" : "2px solid #e2e8f0",
-                  borderRadius: "8px",
-                  fontSize: "0.95rem",
-                  fontFamily: "inherit",
-                  boxSizing: "border-box",
-                  transition: "all 0.2s ease",
-                  opacity: isLoading ? 0.6 : 1,
-                }}
-                onFocus={(e) => {
-                  (e.target as HTMLInputElement).style.borderColor =
-                    "#3b82f6";
-                }}
-                onBlur={(e) => {
-                  (e.target as HTMLInputElement).style.borderColor = error
-                    ? "#ef4444"
-                    : "#e2e8f0";
-                }}
-              />
-            </div>
-          )}
+          <div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-6 py-4 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all"
+              disabled={isLoading}
+            />
+          </div>
+          
+          {error && <p className="text-rose-500 text-sm">{error}</p>}
 
-          {/* Error */}
-          {error && (
-            <div
-              style={{
-                padding: "0.75rem",
-                marginBottom: "1rem",
-                backgroundColor: "#fee2e2",
-                borderRadius: "6px",
-                color: "#7f1d1d",
-                fontSize: "0.9rem",
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          {/* Botón */}
           <button
             type="submit"
-            disabled={isLoading}
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              backgroundColor: isLoading ? "#cbd5e1" : "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              fontSize: "0.95rem",
-              cursor: isLoading ? "not-allowed" : "pointer",
-              transition: "all 0.3s ease",
-              opacity: isLoading ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!isLoading) {
-                (e.target as HTMLButtonElement).style.backgroundColor =
-                  "#2563eb";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isLoading) {
-                (e.target as HTMLButtonElement).style.backgroundColor =
-                  "#3b82f6";
-              }
-            }}
+            disabled={isLoading || !email.trim() || !password.trim()}
+            className="w-full bg-gradient-to-r from-rose-500 to-orange-500 text-white font-bold rounded-2xl px-6 py-4 transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-lg disabled:opacity-50 text-lg"
           >
-            {isLoading ? "Cargando..." : "Continuar"}
+            {isLoading ? "Connecting..." : isSignUp ? "Create Account" : "Log In"}
           </button>
         </form>
 
-        {/* Info */}
-        <div
-          style={{
-            marginTop: "1.5rem",
-            padding: "1rem",
-            backgroundColor: "#f0f9ff",
-            borderRadius: "8px",
-            fontSize: "0.85rem",
-            color: "#064e3b",
-            lineHeight: "1.5",
+        <button 
+          onClick={() => {
+            setIsSignUp(!isSignUp);
+            setError("");
           }}
+          className="mt-6 text-zinc-400 hover:text-white transition-colors text-sm"
         >
-          <strong style={{ display: "block", marginBottom: "0.25rem" }}>
-            👤 Paciente:
-          </strong>
-          <p style={{ margin: "0 0 0.75rem 0" }}>
-            Crea nuevas citas médicas y visualiza tu historial.
-          </p>
-          <strong style={{ display: "block", marginBottom: "0.25rem" }}>
-            👨‍⚕️ Doctor:
-          </strong>
-          <p style={{ margin: 0 }}>
-            Confirma o rechaza citas, gestiona tu agenda.
-          </p>
-        </div>
+          {isSignUp ? "Already have an account? Log In" : "Don't have an account? Sign Up"}
+        </button>
       </div>
     </div>
   );

@@ -1,0 +1,27 @@
+model Fotografia {
+  id_foto      Int     @id @default(autoincrement())
+  id_usuario   Int
+  url_imagen   String
+  es_principal Boolean @default(false)
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+}
+
+model Spotify {
+  id_spotify        Int     @id @default(autoincrement())
+  id_usuario        Int     @unique
+  spotify_id        String?
+  cancion_destacada String?
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+}
+
+model ContenidoLive {
+  id_live          Int     @id @default(autoincrement())
+  id_usuario       Int
+  url_video_stream String?
+  likes_conteo     Int     @default(0)
+  esta_en_vivo     Boolean @default(false)
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+}

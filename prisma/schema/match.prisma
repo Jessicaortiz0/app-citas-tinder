@@ -1,0 +1,30 @@
+model Matchs {
+  id_match    Int     @id @default(autoincrement())
+  usuario1_id Int
+  usuario2_id Int
+  activo      Boolean @default(true)
+
+  usuario1 Usuario @relation("Usuario1", fields: [usuario1_id], references: [id_usuario], onDelete: Cascade)
+  usuario2 Usuario @relation("Usuario2", fields: [usuario2_id], references: [id_usuario], onDelete: Cascade)
+
+  chats         Chat[]
+  interacciones Interaccion[]
+}
+
+model Chat {
+  id_chat  Int     @id @default(autoincrement())
+  id_match Int
+  mensaje  String
+  leido    Boolean @default(false)
+
+  match Matchs @relation(fields: [id_match], references: [id_match], onDelete: Cascade)
+}
+
+model Interaccion {
+  id_interaccion Int      @id @default(autoincrement())
+  id_match       Int
+  accion         String
+  fecha          DateTime @default(now())
+
+  match Matchs @relation(fields: [id_match], references: [id_match], onDelete: Cascade)
+}

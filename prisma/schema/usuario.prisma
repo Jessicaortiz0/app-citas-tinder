@@ -1,0 +1,60 @@
+model Usuario {
+  id_usuario   Int     @id @default(autoincrement())
+  nombre       String
+  edad         Int
+  genero       String
+  nacionalidad String
+  ciudad_pais  String
+  verificado   Boolean @default(false)
+
+  perfil        Perfil?
+  suscripcion   Suscripcion?
+  contacto      Contacto?
+  gustos        Gustos[]
+  spotify       Spotify?
+  fotografias   Fotografia[]
+  contenidoLive ContenidoLive[]
+
+  matchsComoUsuario1 Matchs[] @relation("Usuario1")
+  matchsComoUsuario2 Matchs[] @relation("Usuario2")
+}
+
+model Perfil {
+  id_perfil      Int     @id @default(autoincrement())
+  id_usuario     Int     @unique
+  biografia      String?
+  altura         Float?
+  peso           Float?
+  signo_zodiacal String?
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+}
+
+model Suscripcion {
+  id_suscripcion Int      @id @default(autoincrement())
+  id_usuario     Int      @unique
+  plan           String
+  fecha_inicio   DateTime
+  fecha_fin      DateTime
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+}
+
+model Contacto {
+  id_contacto     Int     @id @default(autoincrement())
+  id_usuario      Int     @unique
+  correo          String  @unique
+  numero_telefono String?
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+}
+
+model Gustos {
+  id_gusto        Int     @id @default(autoincrement())
+  id_usuario      Int
+  hobbie          String?
+  que_busca       String?
+  genero_favorito String?
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+}
